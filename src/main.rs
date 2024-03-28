@@ -8,6 +8,12 @@ use hal::pac;
 use rp2040_hal as hal;
 use rp2040_hal::clocks::Clock;
 
+use rtt_target::*;
+
+#[link_section = ".boot2"]
+#[used]
+pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
+
 #[rp2040_hal::entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -38,11 +44,14 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    rtt_init_print!();
+
     let mut led_pin = pins.gpio25.into_push_pull_output();
     loop {
         led_pin.set_high().unwrap();
         delay.delay_ms(500);
         led_pin.set_low().unwrap();
         delay.delay_ms(500);
+        rprintln!("Loop!")
     }
 }
