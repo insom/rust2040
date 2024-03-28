@@ -8,6 +8,7 @@ use hal::pac;
 use rp2040_hal as hal;
 use rp2040_hal::clocks::Clock;
 
+use fugit::RateExtU32;
 use rtt_target::*;
 
 #[link_section = ".boot2"]
@@ -45,6 +46,26 @@ fn main() -> ! {
     );
 
     rtt_init_print!();
+
+    let mut i2c = hal::I2C::i2c0(
+        pac.I2C0,
+        pins.gpio4.reconfigure(), // sda
+        pins.gpio5.reconfigure(), // scl
+        100.kHz(),
+        &mut pac.RESETS,
+        125_000_000.Hz(),
+    );
+
+    use cortex_m::prelude::_embedded_hal_blocking_i2c_Read;
+    let i = 0x27u8;
+    let mut readbuf: [u8; 1] = [0; 1];
+    let result = i2c.read(i, &mut readbuf);
+    if let Ok(_) = result {
+        rprintln!("Device found at address{:?}", i)
+    } else {
+        rprintln!("Device not found at address{:?}", i)
+    }
+    delay.delay_ms(50);
 
     let mut led_pin = pins.gpio25.into_push_pull_output();
     loop {

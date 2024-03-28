@@ -392,6 +392,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embedded-hal 1.0.0",
+ "fugit",
  "panic-halt",
  "rp2040-boot2",
  "rp2040-hal",
