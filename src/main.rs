@@ -7,6 +7,7 @@ use embedded_hal::digital::OutputPin;
 use hal::pac;
 use rp2040_hal as hal;
 use rp2040_hal::clocks::Clock;
+use embedded_hal::i2c::I2c;
 
 use fugit::RateExtU32;
 use rtt_target::*;
@@ -14,6 +15,10 @@ use rtt_target::*;
 #[link_section = ".boot2"]
 #[used]
 pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
+
+fn init_lcd<I: I2c>(i2c: &mut I) {
+    i2c.write(0x27u8, &[0]).unwrap();
+}
 
 #[rp2040_hal::entry]
 fn main() -> ! {
@@ -56,16 +61,17 @@ fn main() -> ! {
         125_000_000.Hz(),
     );
 
-    use cortex_m::prelude::_embedded_hal_blocking_i2c_Read;
     let i = 0x27u8;
     let mut readbuf: [u8; 1] = [0; 1];
-    let result = i2c.read(i, &mut readbuf);
+    let result = I2c::read(&mut i2c, i, &mut readbuf);
     if let Ok(_) = result {
         rprintln!("Device found at address{:?}", i)
     } else {
         rprintln!("Device not found at address{:?}", i)
     }
     delay.delay_ms(50);
+
+    init_lcd(&mut i2c);
 
     let mut led_pin = pins.gpio25.into_push_pull_output();
     loop {
