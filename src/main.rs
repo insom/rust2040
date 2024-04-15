@@ -9,10 +9,7 @@ use embassy_time::Timer;
 use embedded_hal_1::i2c::I2c;
 use panic_probe as _;
 
-#[defmt::panic_handler] // defmt's attribute
-fn defmt_panic() -> ! {
-    loop {}
-}
+pub struct Lcd1602 {}
 
 #[allow(dead_code)]
 mod lcd1602 {
@@ -41,36 +38,38 @@ mod lcd1602 {
     pub const LCD_ENTRYLEFT: u8 = 0x02;
 }
 
-async fn init_lcd<I: I2c>(i2c: &mut I) {
-    use lcd1602::*;
-    send_byte(i2c, 3, LCD_COMMAND).await;
-    send_byte(i2c, 3, LCD_COMMAND).await;
-    send_byte(i2c, 3, LCD_COMMAND).await;
-    send_byte(i2c, 2, LCD_COMMAND).await;
-    send_byte(i2c, LCD_ENTRYMODESET | LCD_ENTRYLEFT, LCD_COMMAND).await;
-    send_byte(i2c, LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND).await;
-    send_byte(i2c, LCD_DISPLAYCONTROL | LCD_DISPLAYON, LCD_COMMAND).await;
-    send_byte(i2c, LCD_CLEARDISPLAY, LCD_COMMAND).await;
-    send_byte(i2c, 'B' as u8, LCD_CHARACTER).await;
-}
+impl Lcd1602 {
+    async fn init<I: I2c>(self, i2c: &mut I) {
+        use lcd1602::*;
+        Self::send_byte(i2c, 3, LCD_COMMAND).await;
+        Self::send_byte(i2c, 3, LCD_COMMAND).await;
+        Self::send_byte(i2c, 3, LCD_COMMAND).await;
+        Self::send_byte(i2c, 2, LCD_COMMAND).await;
+        Self::send_byte(i2c, LCD_ENTRYMODESET | LCD_ENTRYLEFT, LCD_COMMAND).await;
+        Self::send_byte(i2c, LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND).await;
+        Self::send_byte(i2c, LCD_DISPLAYCONTROL | LCD_DISPLAYON, LCD_COMMAND).await;
+        Self::send_byte(i2c, LCD_CLEARDISPLAY, LCD_COMMAND).await;
+        Self::send_byte(i2c, 'B' as u8, LCD_CHARACTER).await;
+    }
 
-async fn send_byte<I: I2c>(i2c: &mut I, value: u8, mode: u8) {
-    use lcd1602::*;
-    let high: u8 = mode | (value & 0xf0u8) | LCD_BACKLIGHT;
-    let low: u8 = mode | ((value << 4) & 0xf0u8) | LCD_BACKLIGHT;
-    i2c.write(0x27u8, &[high]).unwrap();
-    toggle_enable(i2c, high).await;
-    i2c.write(0x27u8, &[low]).unwrap();
-    toggle_enable(i2c, low).await;
-}
+    async fn send_byte<I: I2c>(i2c: &mut I, value: u8, mode: u8) {
+        use lcd1602::*;
+        let high: u8 = mode | (value & 0xf0u8) | LCD_BACKLIGHT;
+        let low: u8 = mode | ((value << 4) & 0xf0u8) | LCD_BACKLIGHT;
+        i2c.write(0x27u8, &[high]).unwrap();
+        Self::toggle_enable(i2c, high).await;
+        i2c.write(0x27u8, &[low]).unwrap();
+        Self::toggle_enable(i2c, low).await;
+    }
 
-async fn toggle_enable<I: I2c>(i2c: &mut I, value: u8) {
-    use lcd1602::*;
-    Timer::after_micros(600).await;
-    i2c.write(0x27u8, &[value | LCD_ENABLE]).unwrap();
-    Timer::after_micros(600).await;
-    i2c.write(0x27u8, &[value & !LCD_ENABLE]).unwrap();
-    Timer::after_micros(600).await;
+    async fn toggle_enable<I: I2c>(i2c: &mut I, value: u8) {
+        use lcd1602::*;
+        Timer::after_micros(600).await;
+        i2c.write(0x27u8, &[value | LCD_ENABLE]).unwrap();
+        Timer::after_micros(600).await;
+        i2c.write(0x27u8, &[value & !LCD_ENABLE]).unwrap();
+        Timer::after_micros(600).await;
+    }
 }
 
 #[embassy_executor::main]
@@ -85,7 +84,8 @@ async fn main(_spawner: Spawner) {
     info!("lo");
     // i2c.write(ADDR, &[GPPUB, 0xff]).unwrap(); // pullups
 
-    init_lcd(&mut i2c).await;
+    let l = Lcd1602 { };
+    l.init(&mut i2c).await;
     loop {
         info!("1s");
         Timer::after_secs(1).await;
