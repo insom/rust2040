@@ -41,38 +41,38 @@ pub struct Lcd1602<I> {
 }
 
 impl<I: I2c> Lcd1602<I> {
-    fn init(mut self) {
+    async fn init(mut self) {
         use lcd1602::*;
-        self.send_byte(3, LCD_COMMAND);
-        self.send_byte(3, LCD_COMMAND);
-        self.send_byte(3, LCD_COMMAND);
-        self.send_byte(2, LCD_COMMAND);
-        self.send_byte(LCD_ENTRYMODESET | LCD_ENTRYLEFT, LCD_COMMAND);
-        self.send_byte(LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND);
-        self.send_byte(LCD_DISPLAYCONTROL | LCD_DISPLAYON, LCD_COMMAND);
-        self.send_byte(LCD_CLEARDISPLAY, LCD_COMMAND);
-        self.send_byte('B' as u8, LCD_CHARACTER);
+        self.send_byte(3, LCD_COMMAND).await;
+        self.send_byte(3, LCD_COMMAND).await;
+        self.send_byte(3, LCD_COMMAND).await;
+        self.send_byte(2, LCD_COMMAND).await;
+        self.send_byte(LCD_ENTRYMODESET | LCD_ENTRYLEFT, LCD_COMMAND).await;
+        self.send_byte(LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND).await;
+        self.send_byte(LCD_DISPLAYCONTROL | LCD_DISPLAYON, LCD_COMMAND).await;
+        self.send_byte(LCD_CLEARDISPLAY, LCD_COMMAND).await;
+        self.send_byte('B' as u8, LCD_CHARACTER).await;
     }
 
-    fn send_byte(&mut self, value: u8, mode: u8) {
+    async fn send_byte(&mut self, value: u8, mode: u8) {
         use lcd1602::*;
         let high: u8 = mode | (value & 0xf0u8) | LCD_BACKLIGHT;
         let low: u8 = mode | ((value << 4) & 0xf0u8) | LCD_BACKLIGHT;
 
         self.i2c.write(0x27u8, &[high]).unwrap();
-        self.toggle_enable(high);
+        self.toggle_enable(high).await;
         self.i2c.write(0x27u8, &[low]).unwrap();
-        self.toggle_enable(low);
+        self.toggle_enable(low).await;
     }
 
-    fn toggle_enable(&mut self, value: u8) {
+    async fn toggle_enable(&mut self, value: u8) {
         use lcd1602::*;
         let i2c = &mut self.i2c;
-        embassy_futures::block_on(Timer::after_micros(600));
+        Timer::after_micros(600).await;
         i2c.write(0x27u8, &[value | LCD_ENABLE]).unwrap();
-        embassy_futures::block_on(Timer::after_micros(600));
+        Timer::after_micros(600).await;
         i2c.write(0x27u8, &[value & !LCD_ENABLE]).unwrap();
-        embassy_futures::block_on(Timer::after_micros(600));
+        Timer::after_micros(600).await;
     }
 }
 
@@ -88,7 +88,7 @@ async fn main(_spawner: Spawner) {
     info!("lo");
 
     let l = Lcd1602::<_> { i2c };
-    l.init();
+    l.init().await;
 
     loop {
         info!("1s");
