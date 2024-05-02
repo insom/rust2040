@@ -1,19 +1,16 @@
 #![no_std]
 #![no_main]
 
-use cortex_m::delay::Delay;
 use panic_halt as _;
 
-use embedded_hal::digital::OutputPin;
+//use embedded_hal::digital::OutputPin;
 use hal::pac;
-use rp2040_hal as hal;
-use rp2040_hal::clocks::Clock;
+use trinket_m0::entry;
+use trinket_m0::hal::{self as hal, hal::digital::v2::OutputPin, delay::Delay};
+use trinket_m0::prelude::_embedded_hal_blocking_delay_DelayMs;
+use trinket_m0::prelude::_embedded_hal_blocking_delay_DelayUs;
 
 use rtt_target::*;
-
-#[link_section = ".boot2"]
-#[used]
-pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 pub struct Beeper<P> {
     delay: Delay,
@@ -22,70 +19,51 @@ pub struct Beeper<P> {
 
 impl<P: OutputPin> Beeper<P> {
     pub fn start(&mut self) {
-        self.pin.set_high().unwrap();
-        self.delay.delay_us(1500);
-        self.pin.set_low().unwrap();
-        self.delay.delay_us(741);
+        self.pin.set_high().ok();
+        self.delay.delay_us(1500u32);
+        self.pin.set_low().ok();
+        self.delay.delay_us(741u32);
     }
     pub fn send(&mut self, output: &str) {
         for character in output.chars() {
             if character == '1' {
-                self.pin.set_high().unwrap();
-                self.delay.delay_us(741);
-                self.pin.set_low().unwrap();
-                self.delay.delay_us(247);
+                self.pin.set_high().ok();
+                self.delay.delay_us(741u32);
+                self.pin.set_low().ok();
+                self.delay.delay_us(247u32);
             } else if character == '0' {
-                self.pin.set_high().unwrap();
-                self.delay.delay_us(247);
-                self.pin.set_low().unwrap();
-                self.delay.delay_us(741);
+                self.pin.set_high().ok();
+                self.delay.delay_us(247u32);
+                self.pin.set_low().ok();
+                self.delay.delay_us(741u32);
             }
         }
-        self.delay.delay_us(7000);
+        self.delay.delay_us(7000u32);
     }
 }
 
-#[rp2040_hal::entry]
+#[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
 
-    let mut watchdog = hal::Watchdog::new(pac.WATCHDOG);
-
-    let clocks = hal::clocks::init_clocks_and_plls(
-        12_000_000u32,
-        pac.XOSC,
-        pac.CLOCKS,
-        pac.PLL_SYS,
-        pac.PLL_USB,
-        &mut pac.RESETS,
-        &mut watchdog,
-    )
-    .ok()
-    .unwrap();
-
-    let sio = hal::Sio::new(pac.SIO);
-
-    let pins = hal::gpio::Pins::new(
-        pac.IO_BANK0,
-        pac.PADS_BANK0,
-        sio.gpio_bank0,
-        &mut pac.RESETS,
-    );
+    let mut clock = hal::clock::GenericClockController::with_internal_8mhz(pac.GCLK, &mut pac.PM, &mut pac.SYSCTRL, &mut pac.NVMCTRL);
 
     rtt_init_print!();
 
-    let mut led_pin = pins.gpio25.into_push_pull_output();
+    let pins = hal::gpio::v2::Pins::new(pac.PORT);
+    let mut led_pin = pins.pa00.into_push_pull_output();
 
-    let radio_pin = pins.gpio15.into_push_pull_output();
-    let delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+    let radio_pin = pins.pa01.into_push_pull_output();
+    //let delay = cortex_m::delay::Delay::new(core.SYST, clock.system_clock.freq().to_Hz());
+    let delay = Delay::new(core.SYST, &mut clock);
     let mut b = Beeper { delay: delay, pin: radio_pin };
 
     loop {
         led_pin.set_high().unwrap();
-        b.delay.delay_ms(500);
+        b.delay.delay_ms(500u32);
         led_pin.set_low().unwrap();
-        b.delay.delay_ms(500);
+        b.delay.delay_ms(500u32);
         rprintln!("Loop!");
 
         for _ in 0..5 {
@@ -99,6 +77,6 @@ fn main() -> ! {
         }
 
         rprintln!("Sent!");
-        b.delay.delay_ms(2000);
+        b.delay.delay_ms(2000u32);
     }
 }
