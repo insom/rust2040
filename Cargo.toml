@@ -13,5 +13,5 @@ embedded-hal = "1.0.0"
 fugit = "0.3.7"
 panic-halt = "0.2.0"
 rp2040-boot2 = "0.3.0"
-rp2040-hal = { version = "0.10.0", features = ["critical-section-impl"] }
+rp2040-hal = { version = "0.10.1", features = ["critical-section-impl", "rt"] }
 rtt-target = "0.5.0"
