@@ -7,9 +7,15 @@ edition = "2021"
 runner = "probe-run --chip RP2040"
 
 [dependencies]
-cortex-m = "0.7.7"
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.3"
 embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 rtt-target = "0.5.0"
 trinket_m0 = "0.11.0"
+critical-section = "1.1"
+
+# for cargo flash
+[package.metadata]
+chip = "ATSAMD21E18A"
+

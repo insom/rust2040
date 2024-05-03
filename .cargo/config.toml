@@ -1,4 +1,0 @@
-[build]
-target = "thumbv6m-none-eabi"
-[env]
-DEFMT_LOG = "debug"

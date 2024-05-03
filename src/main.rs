@@ -52,9 +52,9 @@ fn main() -> ! {
     rtt_init_print!();
 
     let pins = hal::gpio::v2::Pins::new(pac.PORT);
-    let mut led_pin = pins.pa00.into_push_pull_output();
+    let mut led_pin = pins.pa10.into_push_pull_output();
 
-    let radio_pin = pins.pa01.into_push_pull_output();
+    let radio_pin = pins.pa02.into_push_pull_output();
     //let delay = cortex_m::delay::Delay::new(core.SYST, clock.system_clock.freq().to_Hz());
     let delay = Delay::new(core.SYST, &mut clock);
     let mut b = Beeper { delay: delay, pin: radio_pin };
